@@ -1,6 +1,8 @@
 // Config
 var cfg = require('../config/config');
 
+var crypto = require('crypto');
+
 // Mongoose
 var User = require('../models/user');
 var Org = require('../models/org');
@@ -48,72 +50,105 @@ exports.verifyCredentials = function(emailAddress, password, callback) {
 	}
 };
 
+function createOrg(orgName, callback) {
+	var newOrg = new Org();
+	newOrg.name = orgName;
+	newOrg.streetAddress = '';
+	newOrg.city = '';
+ 	newOrg.state = '';
+ 	newOrg.country = '';
+ 	newOrg.zip = '';
+ 	newOrg.emailAddress = '';
+ 	newOrg.primaryWorkItem = 'orders';
+	//newOrg._created_by = '56d67d7ee4b035e540be4bfd'; // System Account, move to config
+    //newOrg._updated_by = '56d67d7ee4b035e540be4bfd';
+
+	newOrg.save(function(error, org) {
+		if (error) {
+			callback(error);
+		} else {
+			createCounter(org._id, 'USR', 'users', function (error) {
+				if (error) {
+					callback(error);
+				} else {
+					callback(null, org._id);
+				}
+			});
+		}
+	});
+};
+
+function createCounter(orgId, prefix, col, callback) {
+	var newCounter = new Counter();
+	newCounter.col = col;
+	newCounter.prefix = prefix;	
+	newCounter._org = orgId;
+	//newCounter._created_by = '56d67d7ee4b035e540be4bfd'; // System Account, move to config
+
+	newCounter.save(function(error, counter) {
+		if (error) {
+			callback(error);
+		} else {
+			callback(null);
+		}
+	});
+}
+
+function createUser(req, orgId, callback) {
+	var newUser = new User();
+	newUser.firstName = req.body.firstName;
+	newUser.lastName = req.body.lastName;
+	newUser.emailAddress = req.body.newEmailAddress;
+	newUser.role = 'Admin';
+	newUser.state = 'active';
+	newUser.password = req.body.newPassword;
+	newUser._org = orgId;
+
+	var token = crypto.randomBytes(64).toString('hex');
+	newUser.verified = false;
+	newUser.verifyToken = token;
+	newUser.newUser = true;
+
+	//newUser._created_by = '56d67d7ee4b035e540be4bfd'; // System Account, move to config
+	//newUser._updated_by = '56d67d7ee4b035e540be4bfd';
+
+	newUser.save(function(error, user) {
+		if (error) {
+			callback(error);
+		} else {
+			callback(null, user);
+		}
+	});
+}
+
 exports.signupRequest = function(req, res) {
 	try {
-		var newOrg = new Org();
-		newOrg.name = req.body.orgName;
-		newOrg.streetAddress = '';
- 		newOrg.city = '';
-	 	newOrg.state = '';
-	 	newOrg.country = '';
-	 	newOrg.zip = '';
-	 	newOrg.emailAddress = '';
-	 	newOrg.primaryWorkItem = 'orders';
-		newOrg._created_by = '56d67d7ee4b035e540be4bfd'; // System Account, move to config
-	    newOrg._updated_by = '56d67d7ee4b035e540be4bfd';
-
-	    newOrg.save(function(error, org) {
-	    	if (error) {
-				log.error('|auth.signupRequest.newOrg.save| Unknown  -> ' + error, widget);
-				utility.errorResponseJSON(res, 'Error occurred creating org');
+		createOrg(req.body.orgName, function (error, orgId) {
+			if (error) {
+				log.error('|auth.createOrg| Unknown  -> ' + error, widget);
+				return utility.errorResponseJSON(res, 'Error occurred creating org');
 			} else {
-				var newCounter = new Counter();
-				newCounter.col = 'users';
- 				newCounter.prefix = 'USR';	
- 				newCounter._org = org._id;
-				newCounter._created_by = '56d67d7ee4b035e540be4bfd'; // System Account, move to config
-
-				newCounter.save(function(error, counter) {
+				createUser(req, orgId, function (error, user) {
 					if (error) {
-						log.error('|auth.signupRequest.newCounter.save| Unknown  -> ' + error, widget);
-						utility.errorResponseJSON(res, 'Error occurred creating counter');
+						log.error('|auth.createUser| Unknown  -> ' + error, widget);
+						return utility.errorResponseJSON(res, 'Error occurred creating user');
 					} else {
-						var newUser = new User();
-
-						newUser.firstName = req.body.firstName;
-				 		newUser.lastName = req.body.lastName;
-						newUser.emailAddress = req.body.newEmailAddress;
-						newUser.role = 'Admin';
-						newUser.state = 'active';
-
-						newUser.password = req.body.newPassword;
-						newUser._org = org._id;
-						newUser._created_by = '56d67d7ee4b035e540be4bfd'; // System Account, move to config
-				    	newUser._updated_by = '56d67d7ee4b035e540be4bfd';
-										
-				    	newUser.save(function(error, user) {
-				    		if (error) {
-								log.error('|auth.signupRequest.newUser.save| Unknown  -> ' + error, widget);
-								utility.errorResponseJSON(res, 'Error occurred creating user');
+						NotificationTemplate.findOne({name: cfg.mailer.signupTemplate}, function (error, notificationTemplate) {
+							if (error) {
+								log.error('|auth.signupRequest.NotificationTemplate| Unknown -> ' + error, widget);
+								return utility.errorResponseJSON(res, 'Error while retrieving signup template');
 							} else {
-								NotificationTemplate.findOne({name: cfg.mailer.signupTemplate}, function (error, notificationTemplate) {
-									if (error) {
-										log.error('|auth.signupRequest.NotificationTemplate| Unknown -> ' + error, widget);
-										utility.errorResponseJSON(res, 'Error while sending signup email');
-									} else {
-										//notificationTemplate.html = notificationTemplate.html.replace(cfg.mailer.tokenPlaceholder, token);
-										//notificationTemplate.html = notificationTemplate.html.replace(cfg.mailer.hostNamePlaceholder, cfg.hostname);	
-										mailer.sendMail(notificationTemplate, {to: user.emailAddress}, user._id);								
-										return res.send(JSON.stringify({result: true}));
-									}
-								});
+								notificationTemplate.html = notificationTemplate.html.replace(cfg.mailer.tokenPlaceholder, user.verifyToken);
+								notificationTemplate.html = notificationTemplate.html.replace(cfg.mailer.hostNamePlaceholder, cfg.hostname);
+								mailer.sendMail(notificationTemplate, {to: user.emailAddress}, user._id);								
+								return res.send(JSON.stringify({result: true}));
 							}
-				    	});
+						});
 					}
 				});
 			}
-	    });
-	} catch (e) {
+		});
+	} catch (error) {
 		log.error('|auth.signupRequest| Unknown -> ' + error, widget);
 	    utility.errorResponseJSON(res, 'Error while processing signup request');
 	}
@@ -127,7 +162,7 @@ exports.forgotPasswordRequest = function(req, res) {
 		User.forgotPassword(emailAddress, function (error, user, token){
 			if (error) {
 				log.error('|auth.forgotPasswordRequest.forgetPassword| Unknown -> ' + error, widget);
-				utility.errorResponseJSON(res, 'Error while processing forgot password request');
+				return utility.errorResponseJSON(res, 'Error while processing forgot password request');
 			}
 
 			if (!user.emailAddress) { 
@@ -138,7 +173,7 @@ exports.forgotPasswordRequest = function(req, res) {
 			NotificationTemplate.findOne({name: cfg.mailer.forgotPasswordTemplate}, function (error, notificationTemplate) {
 				if (error) {
 					log.error('|auth.forgotPasswordRequest.NotificationTemplate| Unknown -> ' + error, widget);
-					utility.errorResponseJSON(res, 'Error while processing forgot password request');
+					return utility.errorResponseJSON(res, 'Error while processing forgot password request');
 				} else {
 					notificationTemplate.html = notificationTemplate.html.replace(cfg.mailer.tokenPlaceholder, token);
 					notificationTemplate.html = notificationTemplate.html.replace(cfg.mailer.hostNamePlaceholder, cfg.hostname);	
@@ -148,7 +183,7 @@ exports.forgotPasswordRequest = function(req, res) {
 
 		    return res.send(JSON.stringify({result: true}));
 		});
-	} catch (e) {
+	} catch (error) {
 		log.error('|auth.forgotPasswordRequest| Unknown -> ' + error, widget);
 	    utility.errorResponseJSON(res, 'Error while processing forgot password request');
 	}
@@ -164,18 +199,18 @@ exports.resetPasswordRequest = function(req, res) {
 		User.resetPassword(token, newPassword, function(error, user) {
 			if (error) {
 				log.error('|auth.resetPasswordRequest.resetPassword| Unknown -> ' + error, widget);
-				utility.errorResponseJSON(res, 'Error while resetting password');
+				return utility.errorResponseJSON(res, 'Error while resetting password');
 			}
 
 			if (!user.emailAddress) { 
 				log.error('|auth.resetPasswordRequest.resetPassword| User not found for token -> ' + token, widget);
-				utility.errorResponseJSON(res, 'Error while resetting password');
+				return utility.errorResponseJSON(res, 'Error while resetting password');
 			}
 
 			NotificationTemplate.findOne({name: cfg.mailer.resetPasswordTemplate}, function (error, notificationTemplate) {
 				if (error) {
 					log.error('|auth.resetPasswordRequest.NotificationTemplate| Unknown -> ' + error, widget);
-					utility.errorResponseJSON(res, 'Error while resetting password');
+					return utility.errorResponseJSON(res, 'Error while resetting password');
 				} else {
 					mailer.sendMail(notificationTemplate, {to: user.emailAddress}, user._id);
 				}
@@ -184,8 +219,47 @@ exports.resetPasswordRequest = function(req, res) {
 		    return res.send(JSON.stringify({result: true}));
 		});
 
-	} catch (e) {
+	} catch (error) {
 		log.error('|auth.resetPasswordRequest| Unknown -> ' + error, widget);
 	    utility.errorResponseJSON(res, 'Error while resetting password');
 	}
 };
+
+exports.verifyRequest = function(req, res) {
+	try {
+		var token = req.body.token;
+		
+		log.info('|auth.verifyRequest| Token -> ' + token, widget);
+
+		User.verify(token, function(error, user) {
+			if (error) {
+				log.error('|auth.verifyRequest.verify| Unknown -> ' + error, widget);
+				return utility.errorResponseJSON(res, 'Error while verifying user');
+			}
+
+			if (!user.emailAddress) { 
+				log.error('|auth.verifyRequest.verify| User not found for token -> ' + token, widget);
+				return utility.errorResponseJSON(res, 'Error while verifying user');
+			}
+
+			// TO DO: Welcome email??
+/*
+			NotificationTemplate.findOne({name: cfg.mailer.resetPasswordTemplate}, function (error, notificationTemplate) {
+				if (error) {
+					log.error('|auth.resetPasswordRequest.NotificationTemplate| Unknown -> ' + error, widget);
+					utility.errorResponseJSON(res, 'Error while resetting password');
+				} else {
+					mailer.sendMail(notificationTemplate, {to: user.emailAddress}, user._id);
+				}
+			});
+*/
+		    return res.send(JSON.stringify({result: true}));
+		});
+
+	} catch (error) {
+		log.error('|auth.verifyRequest| Unknown -> ' + error, widget);
+	    utility.errorResponseJSON(res, 'Error while verifying user');
+	}
+};
+
+

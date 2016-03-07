@@ -104,8 +104,8 @@ function initializeAuth() {
 
 		/* 
 		* These headers are for allowing Cross-Origin Resource Sharing (CORS).
-		* This enables the angular front-end, which resides in the QuikPaper 
-		* Platform app, to make requests to the QuikPaper Auth app.
+		* This enables the angular front-end, which resides in the WorkWoo 
+		* Platform app, to make requests to the WorkWoo Auth app.
 		*/
 		app.use(function (req, res, next) {
 			res.set({
@@ -153,6 +153,12 @@ function initializeAuth() {
 			req.logout();
 			res.sendStatus(401);
 		}).post(auth.resetPasswordRequest);
+
+		app.route('/verify').get(function(req, res) {
+			log.info('|verify| Incorrect GET instead of POST', widget);
+			req.logout();
+			res.sendStatus(401);
+		}).post(auth.verifyRequest);
 
 		return app;
 	} catch (e) {

@@ -22,6 +22,9 @@ var userSchema = new Schema({
 	resetPwdToken: String,
     resetPwd: Boolean,
     resetPwdExpiration: Date,
+    verified: Boolean,
+    verifyToken: String,
+    newUser: Boolean,
 	_created_by: { type: Schema.Types.ObjectId, ref: 'User' },
     _updated_by: { type: Schema.Types.ObjectId, ref: 'User' }
 }, cfg.mongoose.options);
@@ -47,6 +50,13 @@ userSchema.statics.authenticate = function(emailAddress, password, callback) {
 
 				if (isMatch) {
 					log.info('|User.authenticate| Credentials match for -> ' + emailAddress, widget);
+
+					if (user.resetPwd == true) {
+						return callback('User is in reset password mode');
+					} else if (user.verified == false) {
+						return callback('User is not verified');
+					}
+
 					return callback(null, user);
 				} else {
 					log.error('|User.authenticate| Credentials do not match for -> ' + emailAddress, widget);
@@ -110,6 +120,29 @@ userSchema.statics.resetPassword = function(token, newPassword, callback) {
 					});				
 		    	});
 			});
+		});
+};
+
+userSchema.statics.verify = function(token, callback) {
+	log.info('|User.verify|', widget);
+	this.findOne({verifyToken: token})
+		.exec(
+		function (err, user) {
+			if (err) { return callback(err); }
+			
+			if (!user) { 
+				log.error('|User.verify| Matching token not found -> ' + token, widget);
+				return callback(null, false);
+			}
+		    		
+		    user.verified = true;
+		    user.verifyToken = '';
+		    		
+			user.save(function (err) {
+				if (err) { return callback(err); }
+		  		log.info('|User.verify| Verify successful', widget);
+		  		return callback(null, user);
+			});						    
 		});
 };
 
