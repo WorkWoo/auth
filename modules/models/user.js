@@ -3,7 +3,7 @@ var mongoose = require('mongoose');
 var bcrypt = require('bcrypt');
 var crypto = require('crypto');
 var Counter = require('../models/counter');
-var log = require('quikpaper-utils').qpLogger;
+var log = require('workwoo-utils').logger;
 var widget = 'user';
 log.registerWidget(widget);
 

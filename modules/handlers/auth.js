@@ -5,12 +5,12 @@ var cfg = require('../config/config');
 var User = require('../models/user');
 var Org = require('../models/org');
 var Counter = require('../models/counter');
-var NotificationTemplate = require('quikpaper-utils').qpNotificationTemplate;
+var NotificationTemplate = require('workwoo-utils').notificationTemplate;
 
 // Custom modules
-var mailer = require('quikpaper-utils').qpMailer;
-var utility = require('quikpaper-utils').qpUtility;
-var log = require('quikpaper-utils').qpLogger;
+var mailer = require('workwoo-utils').mailer;
+var utility = require('workwoo-utils').utility;
+var log = require('workwoo-utils').logger;
 var widget = 'auth';
 log.registerWidget(widget);
 

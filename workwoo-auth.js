@@ -16,9 +16,9 @@ var mongoose = require('mongoose');
 
 // Custom modules
 var auth = require('./modules/handlers/auth.js');
-var utility = require('quikpaper-utils').qpUtility;
-var log = require('quikpaper-utils').qpLogger;
-var widget = 'quikpaper-auth';
+var utility = require('workwoo-utils').utility;
+var log = require('workwoo-utils').logger;
+var widget = 'workwoo-auth';
 log.registerWidget(widget);
 
 /*

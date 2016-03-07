@@ -1,6 +1,6 @@
 var cfg = require('../config/config');
 var mongoose = require('mongoose');
-var log = require('quikpaper-utils').qpLogger;
+var log = require('workwoo-utils').logger;
 var widget = 'counter';
 log.registerWidget(widget);
 
