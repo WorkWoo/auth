@@ -35,6 +35,7 @@ exports.verifyCredentials = function(emailAddress, password, callback) {
 			var userSession = {
 				firstName: user.firstName,
 				lastName: user.lastName,
+				emailAddress: user.emailAddress,
 				id: user.id,
 				role: user.role,
 				org: user._org,
