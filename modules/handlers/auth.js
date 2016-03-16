@@ -60,7 +60,7 @@ function createOrg(orgName, callback) {
  	newOrg.country = '';
  	newOrg.zip = '';
  	newOrg.emailAddress = '';
- 	newOrg.primaryWorkItem = 'orders';
+ 	newOrg.primaryCollection = null;
 	//newOrg._created_by = '56d67d7ee4b035e540be4bfd'; // System Account, move to config
     //newOrg._updated_by = '56d67d7ee4b035e540be4bfd';
 
