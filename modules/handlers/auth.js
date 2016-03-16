@@ -39,7 +39,8 @@ exports.verifyCredentials = function(emailAddress, password, callback) {
 				id: user.id,
 				role: user.role,
 				org: user._org,
-				number: user.number
+				number: user.number,
+				newUser: user.newUser
 			};
 
 			return callback(null, userSession);
