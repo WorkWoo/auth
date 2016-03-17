@@ -11,6 +11,7 @@ var orgSchema = new Schema({
  	zip: { type: String },
  	emailAddress: { type: String },
  	primaryCollection: { type: String },
+ 	accountType: { type: String },
 	_created_by: { type: Schema.Types.ObjectId, ref: 'User' },
     _updated_by: { type: Schema.Types.ObjectId, ref: 'User' }
 }, cfg.mongoose.options);

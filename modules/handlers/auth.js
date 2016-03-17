@@ -62,6 +62,7 @@ function createOrg(orgName, callback) {
  	newOrg.zip = '';
  	newOrg.emailAddress = '';
  	newOrg.primaryCollection = null;
+ 	newOrg.accountType = '0';
 	//newOrg._created_by = '56d67d7ee4b035e540be4bfd'; // System Account, move to config
     //newOrg._updated_by = '56d67d7ee4b035e540be4bfd';
 
