@@ -1,12 +1,12 @@
 // Config
-var cfg = require('../config/config');
+var cfg = require('workwoo-utils').config;
 
 var crypto = require('crypto');
 
 // Mongoose
-var User = require('../models/user');
-var Org = require('../models/org');
-var Counter = require('../models/counter');
+var User = require('workwoo-utils').user;
+var Org = require('workwoo-utils').org;
+var Counter = require('workwoo-utils').counter;
 var NotificationTemplate = require('workwoo-utils').notificationTemplate;
 
 // Custom modules

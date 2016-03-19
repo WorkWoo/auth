@@ -1,5 +1,5 @@
 // Config
-var cfg = require('./modules/config/config');
+var cfg = require('workwoo-utils').config;
 
 // Web - Session
 var express = require('express');
@@ -36,7 +36,7 @@ log.registerWidget(widget);
 		var app = initializeAuth();
 
 		// 3. Start app
-		app.listen(process.env.PORT || cfg.port);
+		app.listen(process.env.PORT || cfg.auth.port);
 
 	} catch (error) {
 		log.error('| ################## Auth Startup Error ################## | -> ' + error, widget);
