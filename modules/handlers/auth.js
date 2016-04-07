@@ -40,7 +40,8 @@ exports.verifyCredentials = function(emailAddress, password, callback) {
 				role: user.role,
 				org: user._org,
 				number: user.number,
-				newUser: user.newUser
+				newUser: user.newUser,
+				phone: user.phone
 			};
 
 			return callback(null, userSession);
