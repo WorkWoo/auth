@@ -12,12 +12,23 @@ var NotificationTemplate = require('workwoo-utils').notificationTemplate;
 // Custom modules
 var mailer = require('workwoo-utils').mailer;
 var utility = require('workwoo-utils').utility;
+var validator = require('workwoo-utils').validator;
 var log = require('workwoo-utils').logger;
 var widget = 'auth';
 log.registerWidget(widget);
 
 exports.verifyCredentials = function(emailAddress, password, callback) {
 	try {
+		var error = null;
+		if (validator.checkNull(emailAddress)) { error = 'Email Address is Null'; } 
+		else if (!validator.checkEmail(emailAddress)) { error = 'Email Address is not valid: ' + emailAddress; } 
+		else if (validator.checkNull(password)) { error = 'Password is Null'; }
+
+		if (error) {
+			log.error('|auth.verifyCredentials.authenticate| ' + error, widget);
+			return callback(error);			
+		}
+
 		log.info('|auth.verifyCredentials| Email -> ' + emailAddress, widget);
 
 		User.authenticate(emailAddress, password, function(error, user){
@@ -161,6 +172,16 @@ exports.signupRequest = function(req, res) {
 exports.forgotPasswordRequest = function(req, res) {
 	try {
 		var emailAddress = req.body.emailAddress;
+
+		var error = null;
+		if (validator.checkNull(emailAddress)) { error = 'Email Address is Null'; } 
+		else if (!validator.checkEmail(emailAddress)) { error = 'Email Address is not valid: ' + emailAddress; } 
+
+		if (error) {
+			log.error('|auth.forgotPasswordRequest| ' + error, widget);
+			return utility.errorResponseJSON(res, error);
+		}
+
 		log.info('|auth.forgotPasswordRequest| Email -> ' + emailAddress, widget);
 		
 		User.forgotPassword(emailAddress, function (error, user, token){
@@ -197,6 +218,15 @@ exports.resetPasswordRequest = function(req, res) {
 	try {
 		var newPassword = req.body.newPassword;
 		var token = req.body.token;
+
+		var error = null;
+		if (validator.checkNull(newPassword)) { error = 'New Password is Null'; } 
+		else if (validator.checkNull(token)) { error = 'Reset Password Token is Null' } 
+
+		if (error) {
+			log.error('|auth.resetPasswordRequest| ' + error, widget);
+			return utility.errorResponseJSON(res, error);
+		}
 		
 		log.info('|auth.resetPasswordRequest| Token -> ' + token, widget);
 
@@ -232,6 +262,14 @@ exports.resetPasswordRequest = function(req, res) {
 exports.verifyRequest = function(req, res) {
 	try {
 		var token = req.body.token;
+
+		var error = null;
+		if (validator.checkNull(token)) { error = 'Verify Token is Null'; } 
+
+		if (error) {
+			log.error('|auth.verifyRequest| ' + error, widget);
+			return utility.errorResponseJSON(res, error);
+		}
 		
 		log.info('|auth.verifyRequest| Token -> ' + token, widget);
 
