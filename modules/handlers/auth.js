@@ -19,14 +19,15 @@ log.registerWidget(widget);
 
 exports.verifyCredentials = function(emailAddress, password, callback) {
 	try {
-		var error = null;
-		if (validator.checkNull(emailAddress)) { error = 'Email Address is Null'; } 
-		else if (!validator.checkEmail(emailAddress)) { error = 'Email Address is not valid: ' + emailAddress; } 
-		else if (validator.checkNull(password)) { error = 'Password is Null'; }
+		var errors = {};
+		if (validator.checkNull(emailAddress)) { errors.emailAddress = 'Email Address is Null'; } 
+		else if (!validator.checkEmail(emailAddress)) { errors.emailAddress = 'Email Address is not valid: ' + emailAddress; } 
+		
+		if (validator.checkNull(password)) { errors.password = 'Password is Null'; }
 
-		if (error) {
-			log.error('|auth.verifyCredentials.authenticate| ' + error, widget);
-			return callback(error);			
+		if (!validator.checkEmptyObject(errors)) {
+			log.error('|auth.verifyCredentials.authenticate| ' + JSON.stringify(errors), widget);
+			return callback('Error while verifying credentials');		
 		}
 
 		log.info('|auth.verifyCredentials| Email -> ' + emailAddress, widget);
@@ -179,7 +180,7 @@ exports.forgotPasswordRequest = function(req, res) {
 
 		if (error) {
 			log.error('|auth.forgotPasswordRequest| ' + error, widget);
-			return utility.errorResponseJSON(res, error);
+			return utility.errorResponseJSON(res, 'Error while processing forgot password request');
 		}
 
 		log.info('|auth.forgotPasswordRequest| Email -> ' + emailAddress, widget);
@@ -219,15 +220,24 @@ exports.resetPasswordRequest = function(req, res) {
 		var newPassword = req.body.newPassword;
 		var token = req.body.token;
 
-		var error = null;
-		if (validator.checkNull(newPassword)) { error = 'New Password is Null'; } 
-		else if (validator.checkNull(token)) { error = 'Reset Password Token is Null' } 
+		var errors = {};
+		if (validator.checkNull(newPassword)) { errors.newPassword = 'New Password is Null'; } 
+		if (validator.checkNull(token)) { errors.token = 'Reset Password Token is Null' } 
 
-		if (error) {
-			log.error('|auth.resetPasswordRequest| ' + error, widget);
-			return utility.errorResponseJSON(res, error);
+		if (!validator.checkEmptyObject(errors)) {
+			log.error('|auth.resetPasswordRequest| ' + JSON.stringify(errors), widget);
+			return utility.errorResponseJSON(res, 'Error while resetting password');
 		}
 		
+		var passwordComplexityResult = validator.checkPasswordComplexity(newPassword);
+
+		for (var option in passwordComplexityResult) {
+			if (!passwordComplexityResult[option]) {
+				log.error('|auth.resetPasswordRequest| Password complexity check failed: ' + JSON.stringify(passwordComplexityResult), widget);
+				return utility.errorResponseJSON(res, 'Error while resetting password');
+			}
+		}
+
 		log.info('|auth.resetPasswordRequest| Token -> ' + token, widget);
 
 		User.resetPassword(token, newPassword, function(error, user) {
@@ -268,7 +278,7 @@ exports.verifyRequest = function(req, res) {
 
 		if (error) {
 			log.error('|auth.verifyRequest| ' + error, widget);
-			return utility.errorResponseJSON(res, error);
+			return utility.errorResponseJSON(res, 'Error while verifying user');
 		}
 		
 		log.info('|auth.verifyRequest| Token -> ' + token, widget);
